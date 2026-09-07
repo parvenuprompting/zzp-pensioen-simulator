@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Zzp-Pensioen Simulator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --papier:#F4F1E9; --inkt:#19202C; --lijn:#d8d3c4; --muted:#6b6f78;
+    --accent:#19202C; --goed:#3e6b4f; --slecht:#a4552f;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--papier);color:var(--inkt);font-family:'DM Sans',sans-serif;line-height:1.6;padding:2rem 1.5rem;max-width:960px;margin:0 auto}
+  h1,h2,h3{font-family:'Space Grotesk',sans-serif;line-height:1.2}
+  h1{font-size:2.2rem;margin-bottom:.4rem}
+  h2{font-size:1.3rem;margin-bottom:1rem}
+  p.sub{color:var(--muted);max-width:34rem;margin-bottom:2.5rem}
+  section{border-top:1px solid var(--lijn);padding:2.5rem 0}
+  label{display:block;font-weight:500;margin-bottom:.25rem;font-size:.9rem}
+  .hint{font-size:.8rem;color:var(--muted);margin-bottom:.75rem}
+  input,select{background:#fff;border:1px solid var(--lijn);padding:.5rem .65rem;font:inherit;border-radius:4px;width:100%}
+  .row{display:flex;gap:1rem;flex-wrap:wrap}
+  .row>div{flex:1;min-width:160px}
+  table{width:100%;border-collapse:collapse;font-size:.9rem;margin-top:.75rem}
+  th,td{border-bottom:1px solid var(--lijn);padding:.5rem .4rem;text-align:left}
+  th{font-family:'Space Grotesk',sans-serif;font-size:.8rem;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
+  td input{padding:.35rem .5rem}
+  button{background:var(--accent);color:var(--papier);border:none;padding:.6rem 1.2rem;font:inherit;font-weight:500;border-radius:4px;cursor:pointer}
+  button.secondary{background:transparent;color:var(--inkt);border:1px solid var(--inkt)}
+  .resultaat{font-family:'Space Grotesk',sans-serif;font-size:1.6rem;font-weight:700}
+  .kaarten{display:flex;gap:1.5rem;flex-wrap:wrap;margin-top:1.5rem}
+  .kaart{flex:1;min-width:220px;background:#fff;border:1px solid var(--lijn);padding:1.25rem;border-radius:6px}
+  .kaart .label{font-size:.75rem;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+  .kaart.goed{border-top:3px solid var(--goed)}
+  .kaart.slecht{border-top:3px solid var(--slecht)}
+  #grafiek{width:100%;height:auto;margin-top:1.5rem}
+  .disclaimer{margin-top:3rem;border-top:1px solid var(--lijn);padding:1.5rem 0;color:var(--muted);font-size:.85rem}
+  .opgeslagen{font-size:.8rem;color:var(--goed)}
+</style>
+</head>
+<body>
+<h1>Zzp-Pensioen Simulator</h1>
+<p class="sub">Modeleer je pensioenopbouw bij onregelmatig zzp-inkomen. Alles gebeurt lokaal in je browser — niets gaat naar een server.</p>
+
+<section>
+  <h2>1. Profiel</h2>
+  <div class="row">
+    <div><label for="leeftijd">Huidige leeftijd</label><input type="number" id="leeftijd" min="18" max="75" value="35"></div>
+    <div><label for="pensioenleeftijd">Gewenste pensioenleeftijd</label><input type="number" id="pensioenleeftijd" min="55" max="80" value="68"></div>
+  </div>
+</section>
+
+<section>
+  <h2>2. Inkomen</h2>
+  <div class="row" style="margin-bottom:1rem">
+    <div>
+      <label for="modus">Invoermodus</label>
+      <select id="modus"><option value="jaar">Jaarbedragen</option><option value="maand">Maandbedragen met variatie</option></select>
+    </div>
+    <div><label for="startjaar">Startjaar</label><input type="number" id="startjaar" value="2026"></div>
+    <div><label for="rendement">Verwacht rendement (% per jaar)</label><input type="number" id="rendement" value="4" step="0.5"></div>
+    <div><label for="inzetPct">Aandeel jaarruimte dat je inzet (%)
+      <span class="hint" style="margin:0">Bij minder dan 100% blijft ruimte liggen die na 1 jaar vervalt</span></label><input type="number" id="inzetPct" value="100" min="0" max="100" step="10"></div>
+  </div>
+  <div id="jaarInvoer">
+    <p class="hint">Vul je verwachte winst (na bedrijfskosten) per jaar. Jaarruimte = max 30% van winst; onbenutte ruimte vervalt na 1 jaar.</p>
+    <table id="tabelJaar"><thead><tr><th>Jaar</th><th>Winst (€)</th></tr></thead><tbody></tbody></table>
+  </div>
+  <div id="maandInvoer" style="display:none">
+    <p class="hint">Vul een gemiddelde maandwinst en hoeveel maanden "goed" (boven gemiddeld) en "slecht" (onder gemiddeld) je jaar doorgaans heeft.</p>
+    <div class="row">
+      <div><label for="maandGem">Gemiddelde maandwinst (€)</label><input type="number" id="maandGem" value="3000"></div>
+      <div><label for="maandGoed">Goede maanden (+50% gemiddelde)</label><input type="number" id="maandGoed" value="4" min="0" max="12"></div>
+      <div><label for="maandSlecht">Slechte maanden (−50% gemiddelde)</label><input type="number" id="maandSlecht" value="3" min="0" max="12"></div>
+    </div>
+  </div>
+  <p style="margin-top:1rem"><button id="opslaan">Invoer opslaan</button> <span id="opslaatStatus" class="opgeslagen"></span></p>
+</section>
+
+<section>
+  <h2>3. Verwachte pensioenopbouw</h2>
+  <p class="hint">Kernberekening — testjaar: winst €60.000 → jaarruimte 30% = €18.000, volgend jaar onbenut → verval. Aankoop in hetzelfde of volgende jaar geeft pensioenkapitaal dat met rendement groeit tot je pensioenleeftijd.</p>
+  <div class="resultaat" id="totaalKapitaal">—</div>
+  <p class="hint" id="uitkeringsHint"></p>
+  <svg id="grafiek" viewBox="0 0 860 320" role="img" aria-label="Grafiek pensioenopbouw per jaar"></svg>
+</section>
+
+<section>
+  <h2>4. Scenario-vergelijking: goede jaren vs. slechte jaren</h2>
+  <p class="hint">Twee extreme profielen naast elkaar: afwisselend een goed jaar (+40% winst) of een slecht jaar (−40% winst), met hetzelfde langjarige gemiddelde.</p>
+  <div class="kaarten">
+    <div class="kaart goed"><div class="label">Goede jaren</div><div class="resultaat" id="scGoed">—</div><p class="hint">Elk jaar +40% ten opzichte van gemiddelde winst</p></div>
+    <div class="kaart slecht"><div class="label">Slechte jaren</div><div class="resultaat" id="scSlecht">—</div><p class="hint">Elk jaar −40% ten opzichte van gemiddelde winst</p></div>
+  </div>
+  <svg id="grafiekScenario" viewBox="0 0 860 280" role="img" aria-label="Grafiek scenario-vergelijking" style="width:100%;margin-top:1.5rem"></svg>
+</section>
+
+<div class="disclaimer">
+  <strong>Disclaimer:</strong> dit is een rekenmodel voor verkenning, geen financieel advies. De berekeningen zijn sterk vereenvoudigd (bijv. vaste jaarruimte van 30%, verondersteld rendement, geen AOW, loonbelastingkorting of wetgevingwijzigingen). Raadpleeg een financieel adviseur voor beslissingen over je pensioen.
+</div>
+
+<script>
+'use strict';
+// ── Basisparameters (vereenvoudigd, legbaar) ──────────────────────────
+const JAARRUIMTE_PERCENTAGE = 0.30;   // max 30% van winst
+const VERVAL_JAREN = 1;               // onbenutte jaarruimte vervalt na 1 jaar
+const AOW_LEEFTIJD = 68;              // ter indicatie in hint
+
+// ── Kernberekening ────────────────────────────────────────────────────
+// Model (simpel en legbaar):
+//  • Jaarruimte per jaar = max 30% van de winst van dat jaar.
+//  • Je zet een vast percentage (inzetPct, standaard 100%) van de beschikbare
+//    ruimte in als pensioenpremie.
+//  • Onbenutte ruimte van het afgelopen jaar is nog één jaar bruikbaar
+//    (bijv. in een jaar met winst 0), daarna vervalt die definitief.
+//  • Elke premie groeit met het verwachte rendement tot de pensioenleeftijd.
+function berekenJaarjaar(winsten, rendement, pensioenleeftijd, inzetPct){
+  const perJaar = [];
+  let leftover = 0; // onbenutte jaarruimte van het vorige jaar (vervalt na dit jaar)
+  const r = rendement / 100;
+  const frac = (inzetPct ?? 100) / 100;
+
+  for (const {jaar, winst, leeftijd} of winsten){
+    const ruimte = Math.max(0, winst) * JAARRUIMTE_PERCENTAGE;
+    const beschikbaar = ruimte + leftover;   // vorig jaar onbenut + dit jaar
+    const inzet = beschikbaar * frac;
+    // Wat blijft er liggen? Alleen de ruimte van DIT jaar kan mee naar volgend
+    // jaar; onbenutte ruimte van vorig jaar vervalt definitief.
+    leftover = Math.min(beschikbaar - inzet, ruimte);
+    const jarenTotPensioen = Math.max(0, pensioenleeftijd - leeftijd);
+    const kapitaalPlus = inzet * Math.pow(1 + r, jarenTotPensioen);
+    perJaar.push({jaar, leeftijd, winst, jaarruimte: ruimte, inzet, kapitaalPlus});
+  }
+  // kapitaal cumulatief opbouwen
+  let cum = 0;
+  for (const p of perJaar){ cum += p.kapitaalPlus; p.kapitaal = cum; }
+  return {perJaar, totaalKapitaal: cum};
+}
+
+// ── Invoer lezen ─────────────────────────────────────────────────────
+function leesInvoer(){
+  const leeftijd = +document.getElementById('leeftijd').value || 35;
+  const pensioenleeftijd = +document.getElementById('pensioenleeftijd').value || 68;
+  const rendement = +document.getElementById('rendement').value || 4;
+  const startjaar = +document.getElementById('startjaar').value || new Date().getFullYear();
+  const inzetPct = +document.getElementById('inzetPct').value ?? 100;
+  const modus = document.getElementById('modus').value;
+  const winsten = [];
+  if (modus === 'maand'){
+    const gem = +document.getElementById('maandGem').value || 0;
+    const goed = Math.min(12, Math.max(0, +document.getElementById('maandGoed').value || 0));
+    const slecht = Math.min(12 - goed, Math.max(0, +document.getElementById('maandSlecht').value || 0));
+    const neutraal = 12 - goed - slecht;
+    const jaarwinst = gem * (goed * 1.5 + neutraal * 1 + slecht * 0.5);
+    for (let j = 0; j < pensioenleeftijd - leeftijd; j++){
+      winsten.push({jaar: startjaar + j, winst: jaarwinst, leeftijd: leeftijd + j});
+    }
+  } else {
+    document.querySelectorAll('#tabelJaar tbody tr').forEach((tr, i) => {
+      const w = +tr.querySelector('input').value || 0;
+      winsten.push({jaar: startjaar + i, winst: w, leeftijd: leeftijd + i});
+    });
+  }
+  return {leeftijd, pensioenleeftijd, rendement, startjaar, inzetPct, modus, winsten};
+}
+
+// ── Visualisatie ─────────────────────────────────────────────────────
+function tekenGrafiek(svgId, perJaar, extraSerie){
+  const svg = document.getElementById(svgId);
+  const W = 860, H = svgId === 'grafiek' ? 320 : 280, pad = {t:20, r:20, b:40, l:70};
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  const series = extraSerie ? [perJaar, extraSerie] : [perJaar];
+  const maxKap = Math.max(1, ...series.map(s => Math.max(...s.map(p => p.kapitaal))));
+  const bw = (W - pad.l - pad.r) / Math.max(1, perJaar.length);
+  let html = '';
+  // assen
+  html += `<line x1="${pad.l}" y1="${H-pad.b}" x2="${W-pad.r}" y2="${H-pad.b}" stroke="#d8d3c4"/>`;
+  for (let i = 0; i <= 4; i++){
+    const y = H - pad.b - i*(H-pad.t-pad.b)/4;
+    const val = Math.round(maxKap * i / 4);
+    html += `<line x1="${pad.l}" y1="${y}" x2="${W-pad.r}" y2="${y}" stroke="#ece8dd"/>`;
+    html += `<text x="${pad.l-8}" y="${y+4}" text-anchor="end" font-size="10" fill="#6b6f78">${(val/1000).toFixed(0)}k</text>`;
+  }
+  const kleuren = ['#19202C', '#a4552f'];
+  series.forEach((serie, si) => {
+    const offset = extraSerie ? (si === 0 ? -bw/4 : bw/4) : 0;
+    const breedte = extraSerie ? bw/2 : bw * 0.7;
+    serie.forEach((p, i) => {
+      const h = (p.kapitaal / maxKap) * (H - pad.t - pad.b);
+      html += `<rect x="${pad.l + i*bw + offset + (breedte-bw*0.7)/2}" y="${H-pad.b-h}" width="${breedte}" height="${h}" fill="${kleuren[si]}" opacity="${si===0?0.85:0.7}" rx="2"><title>${p.jaar}: €${Math.round(p.kapitaal).toLocaleString('nl-NL')}</title></rect>`;
+      if (i % Math.ceil(serie.length/12) === 0){
+        html += `<text x="${pad.l + i*bw + bw/2}" y="${H-pad.b+16}" text-anchor="middle" font-size="10" fill="#6b6f78">${p.jaar}</text>`;
+      }
+    });
+  });
+  if (extraSerie){
+    html += `<text x="${W-pad.r}" y="${pad.t}" text-anchor="end" font-size="11" fill="#19202C">■ Goede jaren</text>`;
+    html += `<text x="${W-pad.r}" y="${pad.t+16}" text-anchor="end" font-size="11" fill="#a4552f">■ Slechte jaren</text>`;
+  }
+  svg.innerHTML = html;
+}
+
+// ── Render ───────────────────────────────────────────────────────────
+const fmt = n => Math.round(n).toLocaleString('nl-NL');
+
+function render(){
+  const inv = leesInvoer();
+  const {perJaar, totaalKapitaal} = berekenJaarjaar(inv.winsten, inv.rendement, inv.pensioenleeftijd, inv.inzetPct);
+  document.getElementById('totaalKapitaal').textContent = '€ ' + fmt(totaalKapitaal);
+  const gemJaar = perJaar.length ? totaalKapitaal / perJaar.length : 0;
+  document.getElementById('uitkeringsHint').textContent =
+    `Bij ${inv.pensioenleeftijd - inv.leeftijd} opbouwjaren ≈ € ${fmt(gemJaar)} per jaar aan kapitaal (exclusief AOW). AOW-leeftijd is nu ${AOW_LEEFTIJD}.`;
+
+  // scenario's: zelfde gemiddelde winst, +40% of −40%
+  const gemWinst = perJaar.length ? perJaar.reduce((s,p)=>s+p.winst,0)/perJaar.length : 0;
+  const scGoed = inv.winsten.map((w,i)=>({jaar:w.jaar, winst: gemWinst*1.4, leeftijd: w.leeftijd, kapitaal:0}));
+  const scSlecht = inv.winsten.map((w,i)=>({jaar:w.jaar, winst: gemWinst*0.6, leeftijd: w.leeftijd, kapitaal:0}));
+  const rGoed = berekenJaarjaar(scGoed, inv.rendement, inv.pensioenleeftijd, inv.inzetPct);
+  const rSlecht = berekenJaarjaar(scSlecht, inv.rendement, inv.pensioenleeftijd, inv.inzetPct);
+  document.getElementById('scGoed').textContent = '€ ' + fmt(rGoed.totaalKapitaal);
+  document.getElementById('scSlecht').textContent = '€ ' + fmt(rSlecht.totaalKapitaal);
+
+  // grafiekscenario's als kapitaalseries
+  const sGoed = rGoed.perJaar.map(p => ({...p, kapitaal: p.kapitaal}));
+  const sSlecht = rSlecht.perJaar.map(p => ({...p, kapitaal: p.kapitaal}));
+  tekenGrafiek('grafiek', perJaar);
+  tekenGrafiek('grafiekScenario', sGoed, sSlecht);
+}
+
+// ── Jaartabel vullen ─────────────────────────────────────────────────
+function vulJaartabel(){
+  const inv = leesInvoer();
+  const tbody = document.querySelector('#tabelJaar tbody');
+  const oudeWaardes = [...tbody.querySelectorAll('input')].map(i=>i.value);
+  const jaren = inv.pensioenleeftijd - inv.leeftijd;
+  tbody.innerHTML = '';
+  for (let j = 0; j < Math.max(1, jaren); j++){
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${inv.startjaar + j}</td><td><input type="number" value="${oudeWaardes[j] ?? (j===0 ? 45000 : '')}" placeholder="bijv. 45000"></td>`;
+    tbody.appendChild(tr);
+  }
+}
+
+// ── localStorage ─────────────────────────────────────────────────────
+const OPSLAG = 'zzp-pensioen-simulator-v1';
+function opslaan(){
+  const inv = leesInvoer();
+  const winsten = inv.modus === 'jaar'
+    ? [...document.querySelectorAll('#tabelJaar tbody input')].map(i=>i.value)
+    : null;
+  localStorage.setItem(OPSLAG, JSON.stringify({...inv, tabelWaardes: winsten}));
+  document.getElementById('opslaatStatus').textContent = '✓ opgeslagen in je browser';
+  setTimeout(()=>document.getElementById('opslaatStatus').textContent = '', 2500);
+}
+function laden(){
+  const raw = localStorage.getItem(OPSLAG);
+  if (!raw) return;
+  try {
+    const d = JSON.parse(raw);
+    document.getElementById('leeftijd').value = d.leeftijd;
+    document.getElementById('pensioenleeftijd').value = d.pensioenleeftijd;
+    document.getElementById('rendement').value = d.rendement;
+    document.getElementById('startjaar').value = d.startjaar;
+    document.getElementById('modus').value = d.modus;
+    if (d.inzetPct) document.getElementById('inzetPct').value = d.inzetPct;
+    if (d.tabelWaardes){
+      vulJaartabel();
+      [...document.querySelectorAll('#tabelJaar tbody input')].forEach((i,idx)=>{ if(d.tabelWaardes[idx]) i.value = d.tabelWaardes[idx]; });
+    }
+    if (d.maandGem) document.getElementById('maandGem').value = d.maandGem;
+    if (d.maandGoed !== undefined) document.getElementById('maandGoed').value = d.maandGoed;
+    if (d.maandSlecht !== undefined) document.getElementById('maandSlecht').value = d.maandSlecht;
+    wisselModus();
+  } catch(e){ console.warn('localStorage ongeldig', e); }
+}
+
+function wisselModus(){
+  const modus = document.getElementById('modus').value;
+  document.getElementById('jaarInvoer').style.display = modus === 'jaar' ? '' : 'none';
+  document.getElementById('maandInvoer').style.display = modus === 'maand' ? '' : 'none';
+  if (modus === 'jaar') vulJaartabel();
+  render();
+}
+
+// ── Events ───────────────────────────────────────────────────────────
+document.getElementById('modus').addEventListener('change', wisselModus);
+['leeftijd','pensioenleeftijd','startjaar','rendement','inzetPct','maandGem','maandGoed','maandSlecht'].forEach(id=>
+  document.getElementById(id).addEventListener('input', ()=>{ if(id==='leeftijd'||id==='pensioenleeftijd'||id==='startjaar') vulJaartabel(); render(); }));
+document.getElementById('opslaan').addEventListener('click', opslaan);
+document.querySelector('#tabelJaar').addEventListener('input', render);
+
+// ── Init ─────────────────────────────────────────────────────────────
+vulJaartabel();
+laden();
+wisselModus();
+render();
+</script>
+</body>
+</html>
