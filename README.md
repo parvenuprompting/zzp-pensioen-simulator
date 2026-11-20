@@ -13,4 +13,4 @@ Modelleert pensioenopbouw bij onregelmatig zzp-inkomen: jaartabel of maandbedrag
 
 ## Over deze build
 
-Deze tool is gebouwd in de **PAC-fabriek** (Parvenu Autonomous Centre) en loopt onder het **Zero Trust Grow Kit-harnas**: elke stap is machine-geverifieerd, de mens heeft het laatste woord, en de geschiedenis is append-only. Onderdeel van de 400-ideeën-registratie van [tiendos-ideeenarchief.netlify.app](https://tiendos-ideeenarchief.netlify.app).
+Deze tool is gebouwd in de **PAC-fabriek** (Parvenu Autonomous Centre) en loopt onder het **Zero Trust Grow Kit-harnas**: elke stap is machine-geverifieerd, de mens heeft het laatste woord, en de geschiedenis is append-only. Onderdeel van de 400-ideeën-registratie van [Ideeënarchief (privé)](https://ubuntu-4gb-fsn1-2.tail214c32.ts.net:7458/).
